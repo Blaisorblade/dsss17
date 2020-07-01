@@ -201,7 +201,9 @@ Definition demo_rep3 :=
 
 *)
 
-(* FILL IN HERE *)
+Example two := abs (abs (app (var_b 1) (app (var_b 1) (var_b 0)))).
+Example comb_K := abs (abs (var_b 1)).
+Example comb_S := abs (abs (abs (app (app (var_b 2) (var_b 0)) (app (var_b 1) (var_b 0))))).
 
 (** There are two important advantages of the locally nameless
     representation:
@@ -231,6 +233,11 @@ Definition demo_rep3 :=
     mimics standard mathematical notation.  *)
 
 Check [Y ~> var_f Z](abs (app (var_b 0)(var_f Y))).
+Eval cbn in ([Y ~> var_f Z](abs (app (var_b 0)(var_f Y)))).
+Goal ([Y ~> var_f Z](abs (app (var_b 0)(var_f Y)))) = abs (app (var_b 0) (var_f Z)).
+  cbn; now rewrite eq_dec_refl.
+Qed.
+Locate eq_dec.
 
 (** To demonstrate how free variable substitution works, we need to
     reason about var equality.
@@ -253,10 +260,12 @@ Example demo_subst1:
   [Y ~> var_f Z] (abs (app (var_b 0) (var_f Y))) = (abs (app (var_b 0) (var_f Z))).
 Proof.
 (* WORKED IN CLASS *)
-  simpl.
-  destruct (Y==Y).
-  - auto.
-  - destruct n. auto.
+  cbn.
+  now rewrite eq_dec_refl.
+  (* simpl. *)
+  (* destruct (Y==Y). *)
+  (* - auto. *)
+  (* - destruct n. auto. *)
 Qed. 
 
 (** *** Exercise [subst_eq_var]
@@ -268,20 +277,25 @@ Qed.
 Lemma subst_eq_var: forall (x : var) u,
   [x ~> u](var_f x) = u.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  cbn; intros; now rewrite eq_dec_refl.
+Qed.
 
 (** *** Exercise [subst_neq_var] *)
 
 Lemma subst_neq_var : forall (x y : var) u,
   y <> x -> [x ~> u](var_f y) = var_f y.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  cbn; intros; destruct (y == x); intuition.
+Qed.
 
 (** *** Exercise [subst_same] *)
 
 Lemma subst_same : forall y e, [y ~> var_f y] e = e.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction e; cbn; f_equal; eauto.
+  - destruct (x == y); subst; trivial.
+Qed.
+
 
 
 (*************************************************************************)
@@ -327,7 +341,9 @@ Qed.
 Lemma subst_exp_fresh_eq : forall (x : var) e u,
   x `notin` fv_exp e -> [x ~> u] e = e.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction e; simpl; intros; f_equal; auto.
+  destruct (x0 == x); intuition.
+Qed.
 
 (*************************************************************************)
 (** ** Additional Exercises                                              *)
@@ -352,6 +368,8 @@ Lemma fv_exp_subst_exp_notin : forall x y u e,
    x `notin` fv_exp u ->
    x `notin` fv_exp ([y ~> u]e).
 Proof.
+  induction e; simpl; intros; eauto; destruct (x0 == y); assumption.
+  Restart.
   intros x y u e Fr1 Fr2.
   induction e; simpl in *.
   - Case "var_b".
@@ -374,13 +392,30 @@ Qed.
 (** Now prove the following properties of substitution and fv *)
 
 (** *** Exercise [subst_exp_fresh_same] *)
+Functional Scheme subst_exp_ind := Induction for subst_exp Sort Prop.
+Require Import FunInd.
 
 Lemma subst_exp_fresh_same :
 forall u e x,
   x `notin` fv_exp e ->
   x `notin` fv_exp ([x ~> u] e).
 Proof.
- (* FILL IN HERE *) Admitted.
+  intros; functional induction (subst_exp u x e); simpl in *; eauto.
+  Restart.
+  induction e; simpl; intros; eauto; destruct (x == x0); simpl; fsetdec.
+  Restart.
+
+  (* simpl in *. *)
+  (* fsetdec. *)
+  (* info_eauto. *)
+  (* destruct e1. *)
+  (* fsetdec. *)
+  (* Locate "[ _ ~> _ ] _". *)
+
+
+  induction e; simpl; intros; eauto.
+  - destruct (x == x0). + fsetdec. + assumption.
+Qed.
 
 (** *** Exercise [fv_exp_subst_exp_fresh] *)
 
@@ -389,7 +424,32 @@ forall e u x,
   x `notin` fv_exp e ->
   fv_exp ([x ~> u] e) [=] fv_exp e.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; functional induction (subst_exp u x e); simpl in *;
+    try rewrite IHe0; try rewrite IHe1; fsetdec.
+  Restart.
+  intros; induction e; simpl in *; try rewrite IHe; try rewrite IHe1; try rewrite IHe2; try destruct (x0 == x); simpl; fsetdec.
+Qed.
+
+  (* fsetdec. *)
+  (* rewrite IHe; fsetdec. *)
+  (* rewrite IHe1; try rewrite IHe2; fsetdec. *)
+  (* try rewrite IHe0; try rewrite IHe1; try fsetdec. *)
+
+
+  (* autorewrite with core* using fsetdec. *)
+  (* rewrite IHe0; trivial. *)
+  (* rewrite IHe1; trivial. *)
+  (* destruct_notin. *)
+  (* fsetdec. hnf. reflexivity. *)
+  (* intuition idtac. *)
+  (* rewrite H0. *)
+  (* fsetdec. *)
+  (* eauto. *)
+  (* fsetdec. *)
+  (* fsetdec. *)
+  (* fsetdec. *)
+  (* simpl. *)
+  (* fsetdec. *)
 
 (** *** Exercise [fv_exp_subst_exp_upper] *)
 
@@ -397,8 +457,8 @@ Lemma fv_exp_subst_exp_upper :
 forall e1 e2 x1,
   fv_exp (subst_exp e2 x1 e1) [<=] fv_exp e2 `union` remove x1 (fv_exp e1).
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  intros; functional induction (subst_exp e2 x1 e1); simpl in *; fsetdec.
+Qed.
 
 (*************************************************************************)
 (*************************************************************************)

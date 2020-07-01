@@ -201,13 +201,58 @@ Lemma fv_nom_swap : forall z y n,
 Proof.
   (* WORKED IN CLASS *)
   induction n; intros; simpl; unfold swap_var; default_simp.
+  (*   try default_case_split; subst. *)
+  (* default_simp. *)
+  (* default_simp. *)
+  (* simpl in *. *)
+  (* - destruct_notin. subst. *)
+  (* fsetdec. *)
+  (* apply notin_remove_2. *)
+  (* apply IHn.  *)
+  (* info_eauto 1. *)
+  (* - default_step. *)
+  (*   default_case_split; subst. *)
+  (*   (* Check notin_remove_2. *) *)
+  (*   (* Check notin_remove_1. *) *)
+  (*   (* Check AtomSetImpl.remove_1. *) *)
+  (*   info_eauto. *)
+  (*   destruct_notin. *)
+  (*   info_eauto. *)
+  (*   eapply notin_remove_2. *)
+  (*   apply IHn. *)
+  (*   fsetdec. *)
+  (* -  *)
+  (* eauto. *)
+  (* hint_extern_solve_notin. *)
+  (* apply Notin *)
+  (* fsetdec. *)
+  (* eauto. *)
+  (* default_simp. *)
+  (* default_case_split. *)
+  (* subst. *)
+  (* simpl in *. *)
+  (* fsetdec. *)
+  (* info_eauto. *)
+  
+  (* subst. *)
+  (* hint_extern_solve_notin. *)
+  (* apply not_eq_sym. *)
+  (* trivial. *)
+  (* info_auto 1. *)
+  (* reflexivity. *)
+  (* destruct_sum. *)
+  (* default_simp. *)
+  (* auto. *)
+  (* fsetdec. *)
 Qed. 
+
 Lemma shuffle_swap : forall w y n z,
     w <> z -> y <> z ->
     (swap w y (swap y z n)) = (swap w z (swap w y n)).
 Proof.
   (* WORKED IN CLASS *)
-  induction n; intros; simpl; unfold swap_var; default_simp.
+  induction n; intros; simpl; safe_f_equal; eauto; unfold swap_var.
+  all: default_simp.
 Qed. 
 (*************************************************************)
 (** ** Exercises                                             *)
@@ -223,12 +268,21 @@ Qed.
 Lemma swap_symmetric : forall t x y,
     swap x y t = swap y x t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; induction t; simpl; safe_f_equal; eauto;
+  unfold swap_var; default_simp.
+Qed.
+
+Lemma swap_var_involutive : forall z x y,
+    swap_var x y (swap_var x y z) = z.
+Proof.
+  unfold swap_var; default_simp.
+Qed.
 
 Lemma swap_involutive : forall t x y,
     swap x y (swap x y t) = t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; intros; simpl; safe_f_equal; eauto using swap_var_involutive.
+Qed.
 
 (** *** Challenge exercises: equivariance
 
@@ -245,27 +299,61 @@ Lemma swap_var_equivariance : forall v x y z w,
     swap_var x y (swap_var z w v) =
     swap_var (swap_var x y z) (swap_var x y w) (swap_var x y v).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros; simpl; eauto; unfold swap_var. default_simp.
+Qed.
 
 Lemma swap_equivariance : forall t x y z w,
     swap x y (swap z w t) = swap (swap_var x y z) (swap_var x y w) (swap x y t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; intros; simpl; safe_f_equal; eauto using swap_var_equivariance.
+Qed.
 
 Lemma notin_fv_nom_equivariance : forall x0 x y t ,
   x0 `notin` fv_nom t ->
   swap_var x y x0  `notin` fv_nom (swap x y t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; simpl; intros; destruct_notin; subst; auto.
+  apply notin_singleton.
+  unfold swap_var; default_simp.
+Qed.
 
 (* HINT: For a helpful fact about sets of atoms, check AtomSetImpl.union_1 *)
-
 Lemma in_fv_nom_equivariance : forall x y x0 t,
   x0 `in` fv_nom t ->
   swap_var x y x0 `in` fv_nom (swap x y t).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t; simpl; intros.
+  - assert (x0 = x1) as -> by fsetdec. fsetdec.
+  -
+    destruct (x0 == x1); subst.
+    + fsetdec.
+    + 
+      (* Search (_ `in` remove _ _). *)
+      apply AtomSetImpl.remove_2.
+      *
+        (* Slow *)
+        (* unfold swap_var; default_simp. *)
+        (* Faster *)
+        assert (swap_var x y (swap_var x y x1) <> swap_var x y (swap_var x y x0)) by
+            (repeat rewrite swap_var_involutive; eauto).
+        congruence.
+      * eapply IHt. fsetdec.
+  - 
+    (* eapply AtomSetImpl.union_1 in H. *)
+    eapply union_iff.
+    eapply union_iff in H.
+    destruct H; eauto.
+Qed.
 
+(* Exercise from Paolo Giarrusso. *)
+Lemma aeq_abs_diff_alt: forall x y t1 t2,
+     x <> y ->
+     x `notin` fv_nom t2 ->
+     aeq t1 (swap y x t2) ->
+     y `notin` fv_nom t1 /\
+     aeq (swap x y t1) t2.
+Proof.
+  (* FILL IN HERE *) Admitted.
 
 
 (*************************************************************)
